@@ -49,24 +49,19 @@ async function run() {
 
         const usersCollection = client.db('english_hunter').collection('users');
         const coursesCollection = client.db('english_hunter').collection('courses');
+        const classRoomCollection = client.db('english_hunter').collection('class_room');
+        const enrolledStudentsCollection = client.db('english_hunter').collection('enrolled_students');
 
         // jwt
         app.post('/jwt', (req, res) => {
             const user = req.body;
-            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '60s' })
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '2h' })
             res.send({ token })
         })
 
-        // get all users
+        // get single user
         app.get('/users', async (req, res) => {
-            const user = req.body;
-            const email = user.email;
-            const query = { email: email };
-            const isExist = await usersCollection.findOne(query);
-            if (isExist) {
-                return res.send({ message: 'user already exists' })
-            }
-            const result = await usersCollection.insertOne(user);
+            const result = await usersCollection.find().toArray();
             res.send(result)
         })
 
@@ -81,10 +76,67 @@ async function run() {
             res.send(result)
         })
 
-        // post users
+        // get all users
         app.post('/users', async (req, res) => {
+            const user = req.body;
+            const email = user.email;
+            const query = { email: email };
+            const isExist = await usersCollection.findOne(query);
+            if (isExist) {
+                return res.send({ message: 'user already exists' })
+            }
+            const result = await usersCollection.insertOne(user);
+            res.send(result)
+        })
+
+        // get all courses
+        app.get('/courses', async (req, res) => {
+            const result = await coursesCollection.find().toArray();
+            res.send(result)
+        })
+
+        // post course
+        app.post('/courses', async (req, res) => {
             const newData = req.body;
-            const result = await usersCollection.insertOne(newData);
+            const result = await coursesCollection.insertOne(newData);
+            res.send(result)
+        })
+
+        // get all classroom
+        app.get('/classRoom', verifyJWT, async (req, res) => {
+            const result = await classRoomCollection.find().toArray();
+            res.send(result)
+        })
+
+        // get my enroll classes
+        app.get('/enrolledStudents/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { studentEmail: email };
+            const enrollments = await enrolledStudentsCollection.find(query).toArray();
+            if (enrollments.length === 0) {
+                return res.send({ message: 'No enrollments found for the student.', status: 404 })
+            }
+            const batchCodes = enrollments.map(enrollment => enrollment.batchCode);
+            const result = await classRoomCollection.find({ batchCode: { $in: batchCodes } }).toArray();
+            res.send(result)
+        })
+
+        // get enrolled students
+        app.get('/enrolledStudents', async (req, res) => {
+            const result = await enrolledStudentsCollection.find().toArray();
+            res.send(result)
+        })
+
+        // post enrolled student
+        app.post('/enrolledStudents', async (req, res) => {
+            const newData = req.body;
+            const email = newData.studentEmail
+            const query = { studentEmail: email };
+            const isExist = await enrolledStudentsCollection.findOne(query);
+            if (isExist) {
+                return res.send({ message: 'already enroll', status: 403 })
+            }
+            const result = await enrolledStudentsCollection.insertOne(newData);
             res.send(result)
         })
 

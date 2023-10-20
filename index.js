@@ -89,6 +89,20 @@ async function run() {
             res.send(result)
         })
 
+        // update photo
+        app.patch('/users/:email', verifyJWT, async (req, res) => {
+            const email = req.params.email;
+            const filter = { email: email }
+            const updatePhoto = req.query.photo;
+            const updateDoc = {
+                $set: {
+                    photo: updatePhoto,
+                }
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc);
+            res.send(result)
+        });
+
         // get all courses
         app.get('/courses', async (req, res) => {
             const result = await coursesCollection.find().toArray();

@@ -90,7 +90,7 @@ async function run() {
         })
 
         // update photo
-        app.patch('/users/:email', verifyJWT, async (req, res) => {
+        app.put('/users/:email', verifyJWT, async (req, res) => {
             const email = req.params.email;
             const filter = { email: email }
             const updatePhoto = req.query.photo;
@@ -100,6 +100,22 @@ async function run() {
                 }
             };
             const result = await usersCollection.updateOne(filter, updateDoc);
+            res.send(result)
+        });
+
+        // update user info
+        app.patch('/users/:email', verifyJWT, async (req, res) => {
+            const email = req.params.email;
+            const option = { upsert: true };
+            const filter = { email: email }
+            const newData = req.body;
+            const updateDoc = {
+                $set: {
+                    name: newData.name,
+                    phoneNumber: newData.phoneNumber,
+                }
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc, option);
             res.send(result)
         });
 
